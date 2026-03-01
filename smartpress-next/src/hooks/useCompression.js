@@ -23,12 +23,18 @@ export function useCompression() {
     const [batchProgress, setBatchProgress] = useState({ current: 0, total: 0 });
 
     const timeoutRef = useRef(null);
+    const batchTimeoutRef = useRef(null);
     const filesRef = useRef(files);
+    const selectedIndicesRef = useRef(selectedIndices);
 
-    // Sync ref with state for stable callbacks
+    // Sync refs with state for stable callbacks and effect logic
     useEffect(() => {
         filesRef.current = files;
     }, [files]);
+
+    useEffect(() => {
+        selectedIndicesRef.current = selectedIndices;
+    }, [selectedIndices]);
 
     const updateFile = useCallback((index, updates) => {
         setFiles(prev => {
@@ -73,7 +79,7 @@ export function useCompression() {
     }, [updateFile]);
 
     const compressAll = useCallback(async () => {
-        const selected = Array.from(selectedIndices);
+        const selected = Array.from(selectedIndicesRef.current);
         if (selected.length === 0) return;
 
         setIsProcessing(true);
@@ -87,7 +93,7 @@ export function useCompression() {
 
         setIsProcessing(false);
         setBatchProgress({ current: 0, total: 0 });
-    }, [selectedIndices, options, compressFile]);
+    }, [options, compressFile]);
 
     const handleUpload = useCallback(async (newFiles) => {
         const normalized = [];
@@ -123,21 +129,25 @@ export function useCompression() {
         });
     }, []);
 
-    // Debounced auto-compression
+    // Smart Auto-Recompress for Selected Files
+    // Triggers when options change, debounced 400ms
     useEffect(() => {
-        if (selectedIndex === null || filesRef.current.length === 0 || isProcessing) return;
+        if (filesRef.current.length === 0 || isProcessing) return;
 
-        const currentFile = filesRef.current[selectedIndex];
-        if (!currentFile) return;
+        if (batchTimeoutRef.current) clearTimeout(batchTimeoutRef.current);
 
-        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+        batchTimeoutRef.current = setTimeout(async () => {
+            const selected = Array.from(selectedIndicesRef.current);
+            if (selected.length === 0) return;
 
-        timeoutRef.current = setTimeout(() => {
-            compressFile(selectedIndex, options);
-        }, 500);
+            // Sequential re-optimization for selected files
+            for (const index of selected) {
+                await compressFile(index, options);
+            }
+        }, 400);
 
-        return () => clearTimeout(timeoutRef.current);
-    }, [options, selectedIndex, compressFile, isProcessing]);
+        return () => clearTimeout(batchTimeoutRef.current);
+    }, [options, compressFile, isProcessing]);
 
     const removeSelected = useCallback(() => {
         setFiles(prev => prev.filter((_, i) => !selectedIndices.has(i)));

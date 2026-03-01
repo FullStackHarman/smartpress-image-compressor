@@ -9,7 +9,7 @@ import {
     AlertCircle,
     Loader2,
     CheckCircle2,
-    MousePointer2
+    Settings2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatSize } from '@/utils/helpers';
@@ -38,15 +38,20 @@ export default function BatchList({
     if (files.length === 0) return null;
 
     return (
-        <div className="flex flex-col h-full gap-4">
+        <div className="flex flex-col h-full gap-5">
             {/* Batch Header & Selection Controls */}
             <div className="flex items-center justify-between px-2">
                 <div className="flex items-center gap-3">
                     <h3 className="font-black text-[var(--text-primary)] text-lg tracking-tight flex items-center gap-2">
                         Batch Queue
-                        <span className="bg-[var(--accent)] text-white text-[10px] px-2 py-0.5 rounded-full shadow-lg shadow-indigo-500/20">
-                            {selectedIndices.size} Selected
-                        </span>
+                        <motion.span
+                            key={selectedIndices.size}
+                            initial={{ scale: 0.8, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            className="bg-[var(--accent)] text-white text-[11px] font-black px-2.5 py-0.5 rounded-full shadow-lg shadow-indigo-500/30 flex items-center justify-center min-w-[24px]"
+                        >
+                            {selectedIndices.size}
+                        </motion.span>
                     </h3>
                 </div>
                 <div className="flex items-center gap-2">
@@ -70,7 +75,7 @@ export default function BatchList({
                         title="Clear all images"
                     >
                         <Trash2 className="w-3 h-3" />
-                        Start Fresh
+                        Fresh
                     </button>
                 </div>
             </div>
@@ -87,88 +92,119 @@ export default function BatchList({
                                 key={file.id}
                                 layout
                                 initial={{ opacity: 0, x: -20 }}
-                                animate={{ opacity: 1, x: 0 }}
+                                animate={{
+                                    opacity: 1,
+                                    x: 0,
+                                    scale: isActive ? 1.02 : 1,
+                                    borderColor: isSelected ? 'var(--accent)' : 'var(--border-color)',
+                                    backgroundColor: isSelected ? 'var(--accent-glow)' : 'var(--card-bg)'
+                                }}
                                 exit={{ opacity: 0, x: 20 }}
                                 onClick={() => setSelectedIndex(index)}
                                 className={`
-                  relative group cursor-pointer rounded-2xl p-4 border-2 transition-all duration-200
-                  ${isActive
-                                        ? 'bg-[var(--card-bg)] border-[var(--accent)] shadow-lg shadow-indigo-500/10'
-                                        : 'bg-[var(--card-bg)] border-[var(--border-color)] hover:border-[var(--text-muted)] shadow-sm hover:shadow-md'
+                                    relative group cursor-pointer rounded-2xl p-5 border-2 transition-all duration-300
+                                    ${isActive
+                                        ? 'shadow-premium ring-2 ring-[var(--accent)]/10'
+                                        : 'shadow-sm hover:shadow-premium hover:-translate-y-0.5'
                                     }
-                `}
+                                `}
                             >
-                                <div className="flex items-center gap-4">
-                                    {/* Selection Checkbox */}
-                                    <div
-                                        onClick={(e) => toggleSelect(e, index)}
-                                        className={`
-                      w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all
-                      ${isSelected
-                                                ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-lg shadow-indigo-500/20'
-                                                : 'border-[var(--border-color)] group-hover:border-[var(--text-muted)] bg-white dark:bg-slate-800'
-                                            }
-                    `}
-                                    >
-                                        {isSelected && <Check className="w-4 h-4 stroke-[3px]" />}
-                                    </div>
+                                <div className="flex items-center justify-between gap-4">
 
-                                    {/* Thumbnail Placeholder / Icon */}
-                                    <div className={`
-                    w-12 h-12 rounded-xl flex items-center justify-center
-                    ${isActive ? 'bg-indigo-50 text-[var(--accent)] dark:bg-indigo-500/20' : 'bg-[var(--bg-secondary)] text-[var(--text-muted)]'}
-                  `}>
-                                        <FileImage className="w-6 h-6" />
-                                    </div>
+                                    {/* LEFT SIDE: Selection & Info */}
+                                    <div className="flex items-center gap-4 min-w-0">
+                                        <div
+                                            onClick={(e) => toggleSelect(e, index)}
+                                            className={`
+                                                w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all duration-300
+                                                ${isSelected
+                                                    ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-lg shadow-indigo-500/20'
+                                                    : 'border-[var(--border-color)] group-hover:border-[var(--text-muted)] bg-white dark:bg-slate-800'
+                                                }
+                                            `}
+                                        >
+                                            {isSelected && (
+                                                <motion.div
+                                                    initial={{ scale: 0, rotate: -45 }}
+                                                    animate={{ scale: 1, rotate: 0 }}
+                                                >
+                                                    <Check className="w-4 h-4 stroke-[4px]" />
+                                                </motion.div>
+                                            )}
+                                        </div>
 
-                                    {/* File Info */}
-                                    <div className="flex-1 min-w-0">
-                                        <h4 className={`text-sm font-bold truncate ${isActive ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
-                                            {file.original.name}
-                                        </h4>
-                                        <div className="flex items-center gap-2 mt-1">
-                                            <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-tighter">
+                                        <div className={`
+                                            w-10 h-10 rounded-xl flex items-center justify-center transition-colors
+                                            ${isActive ? 'bg-indigo-50 text-[var(--accent)]' : 'bg-[var(--bg-secondary)] text-[var(--text-muted)]'}
+                                        `}>
+                                            <FileImage className="w-6 h-6" />
+                                        </div>
+
+                                        <div className="min-w-0">
+                                            <h4 className={`text-[15px] font-black truncate leading-none mb-1.5 ${isActive ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
+                                                {file.original.name}
+                                            </h4>
+                                            <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest opacity-80">
                                                 {formatSize(file.original.size)}
                                             </span>
-                                            {file.compressed && (
-                                                <>
-                                                    <ChevronRight className="w-3 h-3 text-[var(--text-muted)]" />
-                                                    <span className="text-[10px] font-bold text-green-500 uppercase tracking-tighter">
-                                                        {formatSize(file.compressed.size)}
-                                                    </span>
-                                                </>
-                                            )}
                                         </div>
                                     </div>
 
-                                    {/* Status Indicator */}
-                                    <div className="flex flex-col items-end gap-1">
-                                        {file.status === 'processing' && (
-                                            <div className="flex items-center gap-2 px-3 py-1 bg-amber-500/10 text-amber-600 rounded-full">
-                                                <Loader2 className="w-3 h-3 animate-spin" />
-                                                <span className="text-[9px] font-black uppercase tracking-widest">Optimizing</span>
-                                            </div>
-                                        )}
-                                        {file.status === 'success' && (
-                                            <div className="flex items-center gap-2 px-3 py-1 bg-green-500/10 text-green-600 rounded-full">
-                                                <CheckCircle2 className="w-3 h-3" />
-                                                <span className="text-[9px] font-black uppercase tracking-widest">Saved {file.savings}%</span>
-                                            </div>
-                                        )}
-                                        {file.status === 'error' && (
-                                            <div className="flex items-center gap-2 px-3 py-1 bg-red-500/10 text-red-600 rounded-full">
-                                                <AlertCircle className="w-3 h-3" />
-                                                <span className="text-[9px] font-black uppercase tracking-widest">Failed</span>
-                                            </div>
-                                        )}
+                                    {/* RIGHT SIDE: Results & Actions */}
+                                    <div className="flex items-center gap-3 shrink-0">
+                                        <div className="text-right flex flex-col items-end gap-1">
+                                            {file.compressed ? (
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-[11px] font-black text-[var(--accent)]">
+                                                        {formatSize(file.compressed.size)}
+                                                    </span>
+                                                    <div className="px-2 py-0.5 bg-green-500 text-white text-[9px] font-black rounded-full shadow-lg shadow-green-500/20 uppercase">
+                                                        {file.savings}%
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="h-[18px]" />
+                                            )}
+
+                                            {/* Status Badge */}
+                                            {file.status === 'processing' ? (
+                                                <div className="flex items-center gap-1.5 text-amber-500">
+                                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                                    <span className="text-[9px] font-black uppercase tracking-tighter">Optimizing...</span>
+                                                </div>
+                                            ) : file.status === 'success' ? (
+                                                <div className="flex items-center gap-1.5 text-green-500">
+                                                    <CheckCircle2 className="w-3 h-3" />
+                                                    <span className="text-[9px] font-black uppercase tracking-tighter">Ready</span>
+                                                </div>
+                                            ) : file.status === 'error' ? (
+                                                <div className="flex items-center gap-1.5 text-red-500">
+                                                    <AlertCircle className="w-3 h-3" />
+                                                    <span className="text-[9px] font-black uppercase tracking-tighter">Error</span>
+                                                </div>
+                                            ) : (
+                                                <span className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-tighter">Pending</span>
+                                            )}
+                                        </div>
+
+                                        <button
+                                            className={`p-2 rounded-xl border-2 transition-all ${isActive ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'bg-transparent text-[var(--text-muted)] border-[var(--border-color)] hover:border-[var(--text-muted)]'}`}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setSelectedIndex(index);
+                                            }}
+                                        >
+                                            <Settings2 className="w-4 h-4" />
+                                        </button>
                                     </div>
+
                                 </div>
 
-                                {/* Active Indicator Bar */}
+                                {/* Active Selection Glow */}
                                 {isActive && (
                                     <motion.div
-                                        layoutId="active-bar"
-                                        className="absolute left-0 top-4 bottom-4 w-1 bg-[var(--accent)] rounded-r-full"
+                                        layoutId="selection-glow"
+                                        className="absolute -inset-0.5 border-2 border-[var(--accent)] rounded-2xl pointer-events-none opacity-20"
                                     />
                                 )}
                             </motion.div>

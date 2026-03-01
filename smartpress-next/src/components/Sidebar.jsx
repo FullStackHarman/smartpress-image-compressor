@@ -1,25 +1,26 @@
 'use client';
 
+import { useState, useMemo } from 'react';
 import {
-    ShieldCheck,
-    Settings2,
-    ChevronRight,
-    Lock,
     Zap,
+    Layers,
+    Maximize2,
+    Smartphone,
+    Image as ImageIcon,
     CheckCircle2,
-    Trash2,
-    Maximize,
-    Play,
-    Loader2
+    Info,
+    TrendingDown,
+    Loader2,
+    Crown,
+    Lock
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { formatSize } from '@/utils/helpers';
 
 const PRESETS = [
-    { id: 'instagram', label: 'Insta', icon: '📸', color: 'from-purple-500 to-pink-500', width: 1080, quality: 0.85, format: 'jpeg' },
-    { id: 'shopify', label: 'Shopify', icon: '🛍️', color: 'from-green-500 to-emerald-600', width: 2048, quality: 0.8, format: 'webp' },
-    { id: 'whatsapp', label: 'WA', icon: '💬', color: 'from-emerald-500 to-green-600', width: 800, quality: 0.6, format: 'jpeg' },
-    { id: 'wordpress', label: 'WP', icon: '🌐', color: 'from-blue-500 to-indigo-600', width: 1200, quality: 0.75, format: 'webp' },
-    { id: 'email', label: 'Email', icon: '📧', color: 'from-amber-400 to-orange-500', width: 600, quality: 0.6, format: 'jpeg' },
+    { id: 'insta', name: 'Instagram', icon: Smartphone, width: 1080, height: 1350 },
+    { id: 'shopify', name: 'Shopify', icon: ImageIcon, width: 2048, height: 2048 },
+    { id: 'pwa', name: 'PWA Icon', icon: Layers, width: 512, height: 512 },
 ];
 
 export default function Sidebar({
@@ -29,197 +30,204 @@ export default function Sidebar({
     onOpenPro,
     onCompressAll,
     isProcessing,
-    batchProgress
+    batchProgress,
+    selectedCount
 }) {
-    const handlePreset = (preset) => {
-        if (!isPro) {
-            onOpenPro();
-            return;
-        }
-        setOptions(prev => ({
-            ...prev,
-            initialQuality: preset.quality,
-            maxWidthOrHeight: preset.width,
-            fileType: preset.format,
-            alwaysKeepResolution: false,
-        }));
-    };
+    const [hoveredQuality, setHoveredQuality] = useState(false);
+
+    const buttonText = useMemo(() => {
+        if (isProcessing) return `Compressing ${batchProgress.current}/${batchProgress.total}`;
+        if (selectedCount === 0) return "Select Images";
+        if (selectedCount === 1) return "Compress Selected";
+        return `Compress ${selectedCount} Images`;
+    }, [isProcessing, batchProgress, selectedCount]);
+
+    // Simple estimation logic for UI feedback
+    const estimatedOutput = useMemo(() => {
+        const qualityFactor = options.initialQuality;
+        const formatFactor = options.fileType === 'webp' ? 0.7 : 1.0;
+        return `~${(qualityFactor * formatFactor * 1.2).toFixed(1)} MB avg`;
+    }, [options.initialQuality, options.fileType]);
 
     return (
-        <aside className="w-full lg:w-96 flex flex-col gap-6">
-            {/* Privacy Badge */}
-            <div className="bg-indigo-600/10 dark:bg-indigo-500/10 rounded-3xl p-4 border border-indigo-500/20 flex items-center gap-3">
-                <ShieldCheck className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
-                <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-600">Privacy Shield</p>
-                    <h4 className="text-xs font-bold text-[var(--text-primary)]">100% Client-Side Processing</h4>
-                </div>
-            </div>
+        <aside className="w-full space-y-8">
 
-            {/* Batch Action Section */}
-            <div className="glass-card p-6 space-y-4">
-                <button
-                    onClick={onCompressAll}
-                    disabled={isProcessing}
-                    className="btn-primary w-full !py-4 shadow-xl shadow-indigo-500/20 group relative overflow-hidden"
-                >
-                    <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-                    <div className="relative z-10 flex items-center justify-center gap-2">
+            {/* Main Action Component */}
+            <div className="glass-card p-6 space-y-6 bg-gradient-to-br from-[var(--card-bg)] to-[var(--bg-secondary)] border-2 border-[var(--accent)]/10">
+                <div className="space-y-4">
+                    <button
+                        onClick={onCompressAll}
+                        disabled={isProcessing || selectedCount === 0}
+                        className={`btn-primary w-full !py-6 !text-lg !rounded-2xl shadow-2xl relative overflow-hidden group ${isProcessing ? 'animate-pulse' : ''}`}
+                    >
                         {isProcessing ? (
-                            <>
-                                <Loader2 className="w-5 h-5 animate-spin" />
-                                <span className="text-sm font-black uppercase tracking-widest">
-                                    Compressing {batchProgress.current}/{batchProgress.total}
-                                </span>
-                            </>
+                            <Loader2 className="w-6 h-6 animate-spin" />
                         ) : (
-                            <>
-                                <Play className="w-4 h-4 fill-current" />
-                                <span className="text-sm font-black uppercase tracking-widest">Compress All Selected</span>
-                            </>
+                            <TrendingDown className="w-6 h-6 group-hover:scale-110 transition-transform" />
                         )}
-                    </div>
-                </button>
+                        <span className="font-black tracking-tight">{buttonText}</span>
 
-                {isProcessing && (
-                    <div className="space-y-2">
-                        <div className="h-1.5 w-full bg-[var(--bg-secondary)] rounded-full overflow-hidden">
+                        {/* Progress Bar Overlay */}
+                        {isProcessing && (
                             <motion.div
+                                className="absolute bottom-0 left-0 h-1 bg-white/40"
                                 initial={{ width: 0 }}
                                 animate={{ width: `${(batchProgress.current / batchProgress.total) * 100}%` }}
-                                className="h-full bg-[var(--accent)]"
                             />
-                        </div>
-                    </div>
-                )}
-            </div>
+                        )}
+                    </button>
 
-            {/* Quality Controls */}
-            <div className="glass-card p-6 space-y-6">
-                <div className="flex items-center justify-between">
-                    <h3 className="font-bold text-[var(--text-primary)] flex items-center gap-2">
-                        <Settings2 className="w-4 h-4 text-indigo-600" /> Optimization
-                    </h3>
-                </div>
-
-                {/* Quality Slider */}
-                <div className={`space-y-4 ${options.forceSize ? 'opacity-40 pointer-events-none' : 'transition-opacity'}`}>
-                    <div className="flex justify-between text-sm font-bold">
-                        <span className="text-[var(--text-muted)] uppercase tracking-widest text-[10px]">Quality</span>
-                        <span className="text-indigo-600">{Math.round(options.initialQuality * 100)}%</span>
-                    </div>
-                    <input
-                        type="range"
-                        min="10"
-                        max="100"
-                        value={options.initialQuality * 100}
-                        onChange={(e) => setOptions(prev => ({ ...prev, initialQuality: e.target.value / 100 }))}
-                        className="w-full accent-indigo-600 h-1.5 bg-[var(--bg-secondary)] rounded-lg appearance-none cursor-pointer"
-                    />
-                </div>
-
-                {/* Target Size Priority */}
-                <div className="space-y-4 pt-4 border-t border-[var(--border-color)]">
-                    <div className="flex items-center justify-between">
-                        <label className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-2">
-                            Target Max Size (MB)
-                        </label>
-                        <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-tighter">Force Size:</span>
-                            <button
-                                onClick={() => setOptions(prev => ({ ...prev, forceSize: !prev.forceSize }))}
-                                className={`w-10 h-5 rounded-full transition-all relative ${options.forceSize ? 'bg-indigo-600 shadow-md shadow-indigo-500/40' : 'bg-slate-200 dark:bg-slate-700'}`}
-                            >
-                                <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${options.forceSize ? 'right-1' : 'left-1'}`} />
-                            </button>
-                        </div>
-                    </div>
-                    <input
-                        type="number"
-                        step="0.1"
-                        placeholder="e.g. 0.5"
-                        value={options.maxSizeMB}
-                        onChange={(e) => setOptions(prev => ({ ...prev, maxSizeMB: parseFloat(e.target.value) || 0 }))}
-                        className="input-base text-sm"
-                    />
-                    {options.forceSize && (
-                        <p className="text-[9px] font-bold text-amber-500 uppercase tracking-wider animate-pulse flex items-center gap-1">
-                            ⚠️ Overriding Quality Slider
+                    {selectedCount > 0 && !isProcessing && (
+                        <p className="text-[10px] font-black text-center text-[var(--text-muted)] uppercase tracking-widest animate-fade-in">
+                            Auto-recompressing on changes
                         </p>
                     )}
                 </div>
 
-                {/* Target Format */}
-                <div className="space-y-4 pt-4 border-t border-[var(--border-color)]">
-                    <label className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest block">Output Format</label>
-                    <div className="grid grid-cols-2 gap-2">
-                        {['original', 'webp', 'jpeg', 'png'].map((format) => (
+                <div className="h-px bg-[var(--border-color)]" />
+
+                {/* Quality Control */}
+                <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                        <label className="text-xs font-black uppercase tracking-[0.2em] text-[var(--accent)] flex items-center gap-2">
+                            Compression Power
+                        </label>
+                        <div className="px-3 py-1 bg-[var(--accent)]/10 text-[var(--accent)] text-[11px] font-black rounded-lg">
+                            {Math.round(options.initialQuality * 100)}%
+                        </div>
+                    </div>
+
+                    <div className="relative pt-6">
+                        {/* Quality Tooltip */}
+                        <AnimatePresence>
+                            {(hoveredQuality || isProcessing) && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10, scale: 0.9 }}
+                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    exit={{ opacity: 0, y: 10 }}
+                                    className="absolute -top-4 left-[var(--quality-percent)] -translate-x-1/2 bg-[var(--accent)] text-white text-[10px] font-black px-2 py-1 rounded-md shadow-xl z-20"
+                                    style={{ '--quality-percent': `${options.initialQuality * 100}%` }}
+                                >
+                                    {Math.round(options.initialQuality * 100)}%
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+
+                        <input
+                            type="range"
+                            min="0.1"
+                            max="1.0"
+                            step="0.01"
+                            value={options.initialQuality}
+                            onMouseEnter={() => setHoveredQuality(true)}
+                            onMouseLeave={() => setHoveredQuality(false)}
+                            onChange={(e) => setOptions({ ...options, initialQuality: parseFloat(e.target.value) })}
+                            className="quality-slider w-full"
+                        />
+                        <div className="flex justify-between mt-2 text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">
+                            <span>Smaller File</span>
+                            <span>Better Quality</span>
+                        </div>
+                    </div>
+
+                    {/* Estimated Preview */}
+                    <div className="p-4 bg-indigo-50/50 dark:bg-indigo-500/5 rounded-2xl border border-indigo-100 dark:border-indigo-500/10 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <Info className="w-3.5 h-3.5 text-[var(--accent)]" />
+                            <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase">Estimated Output</span>
+                        </div>
+                        <span className="text-xs font-black text-[var(--accent)]">{estimatedOutput}</span>
+                    </div>
+                </div>
+            </div>
+
+            {/* Presets & Formats */}
+            <div className="glass-card p-6 space-y-6">
+                <div>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-4 block">Output Format</label>
+                    <div className="flex p-1 bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-color)]">
+                        {['original', 'jpeg', 'webp', 'png'].map((type) => (
                             <button
-                                key={format}
-                                onClick={() => setOptions(prev => ({ ...prev, fileType: format }))}
-                                className={`btn-secondary !py-2 !text-[10px] !rounded-xl border-2 transition-all ${options.fileType === format ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 font-black' : 'border-transparent'}`}
+                                key={type}
+                                onClick={() => setOptions({ ...options, fileType: type })}
+                                className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${options.fileType === type
+                                    ? 'bg-[var(--accent)] text-white shadow-lg'
+                                    : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                                    }`}
                             >
-                                {format === 'original' ? 'Keep Original' : format.toUpperCase()}
+                                {type}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="space-y-4">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] block">Platform Presets</label>
+                    <div className="grid grid-cols-1 gap-2">
+                        {PRESETS.map((preset) => (
+                            <button
+                                key={preset.id}
+                                disabled={!isPro}
+                                onClick={() => setOptions({ ...options, maxWidthOrHeight: preset.width, alwaysKeepResolution: false })}
+                                className={`flex items-center justify-between p-3 rounded-xl border-2 transition-all group ${!isPro ? 'opacity-50 grayscale' : 'hover:border-[var(--accent)] hover:bg-[var(--accent)]/5'
+                                    } ${options.maxWidthOrHeight === preset.width ? 'border-[var(--accent)] bg-[var(--accent)]/5' : 'border-[var(--border-color)]'}`}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-[var(--bg-secondary)] rounded-lg group-hover:bg-white transition-colors">
+                                        <preset.icon className="w-4 h-4 text-[var(--text-secondary)]" />
+                                    </div>
+                                    <div className="text-left font-bold text-xs">{preset.name}</div>
+                                </div>
+                                {!isPro && <Lock className="w-3 h-3 text-[var(--text-muted)]" />}
                             </button>
                         ))}
                     </div>
                 </div>
             </div>
 
-            {/* Platform Presets */}
-            <div className="glass-card p-6">
-                <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-bold text-[var(--text-primary)] flex items-center gap-2">
-                        <Zap className="w-4 h-4 text-amber-500 fill-amber-500" /> Platform Presets
-                    </h3>
-                    <span className="text-[10px] bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded-full font-bold uppercase tracking-tighter">Pro Only</span>
-                </div>
-                <div className="grid grid-cols-5 gap-2">
-                    {PRESETS.map((preset) => (
-                        <button
-                            key={preset.id}
-                            onClick={() => handlePreset(preset)}
-                            className="relative group flex flex-col items-center gap-1.5"
-                        >
-                            <div className={`w-12 h-12 bg-gradient-to-br ${preset.color} rounded-2xl flex items-center justify-center text-xl shadow-lg shadow-black/5 group-hover:scale-110 transition-transform ${!isPro ? 'grayscale opacity-70' : ''}`}>
-                                {preset.icon}
-                            </div>
-                            <span className="text-[9px] font-bold uppercase tracking-wider text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors">
-                                {preset.label}
-                            </span>
-                            {!isPro && <Lock className="absolute -top-1 -right-1 w-3 h-3 text-white bg-slate-900 rounded-full p-0.5 shadow-sm" />}
-                        </button>
-                    ))}
-                </div>
-            </div>
-
-            {/* Upgrade Pro Banner (Enhanced) */}
+            {/* Pro Conversion Section - Optimized UI */}
             {!isPro && (
-                <div className="bg-gradient-to-br from-indigo-600 to-indigo-700 rounded-3xl p-6 text-white shadow-xl shadow-indigo-500/40 relative overflow-hidden group cursor-pointer border border-white/10" onClick={onOpenPro}>
-                    <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-700"></div>
-                    <div className="relative z-10 flex flex-col gap-4">
-                        <div className="flex items-center justify-between">
-                            <h4 className="font-black text-lg tracking-tight">Unlock SmartPress Pro <span className="text-indigo-200">✨</span></h4>
-                            <Zap className="w-5 h-5 fill-indigo-300 text-indigo-300" />
+                <motion.div
+                    whileHover={{ scale: 1.02 }}
+                    className="glass-card !bg-indigo-600 p-8 text-white relative overflow-hidden group shadow-2xl shadow-indigo-500/40"
+                >
+                    <div className="relative z-10 space-y-6">
+                        <div className="space-y-1">
+                            <span className="text-[9px] font-black uppercase tracking-[0.3em] opacity-80 bg-white/10 px-3 py-1 rounded-full">Limited Early Access Price</span>
+                            <h3 className="text-3xl font-black tracking-tighter">Lifetime Access</h3>
                         </div>
 
-                        <div className="grid grid-cols-1 gap-1.5 opacity-90">
-                            {['No File Size Limit', 'All Platform Presets', 'Batch Priority Engine'].map(f => (
-                                <div key={f} className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest">
-                                    <CheckCircle2 className="w-3 h-3 text-indigo-300" /> {f}
+                        <div className="grid grid-cols-1 gap-3">
+                            {['Unlimited Batch Mode', 'Premium Platform Presets', 'Batch Priority Engine'].map((feat) => (
+                                <div key={feat} className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest">
+                                    <div className="w-5 h-5 bg-white/20 rounded-full flex items-center justify-center">
+                                        <CheckCircle2 className="w-3 h-3 text-white" />
+                                    </div>
+                                    {feat}
                                 </div>
                             ))}
                         </div>
 
-                        <div className="flex items-center justify-between pt-2">
-                            <span className="text-2xl font-black tracking-tighter">$9 <span className="text-[10px] font-medium opacity-70">/ lifetime</span></span>
-                            <div className="bg-white text-indigo-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg group-hover:scale-105 transition-transform">
-                                Upgrade Now
-                            </div>
+                        <div className="flex items-baseline gap-2">
+                            <span className="text-4xl font-black">$9</span>
+                            <span className="text-xs font-bold opacity-60 uppercase tracking-widest">One-time payment</span>
                         </div>
+
+                        <button
+                            onClick={onOpenPro}
+                            className="w-full py-4 bg-white text-indigo-600 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl hover:shadow-2xl transition-all active:scale-95 group-hover:bg-indigo-50"
+                        >
+                            Unlock Everything
+                        </button>
                     </div>
-                </div>
+
+                    {/* Pro Banner Decorations */}
+                    <div className="absolute top-0 right-0 -mr-16 -mt-16 w-48 h-48 bg-white/10 rounded-full blur-3xl group-hover:bg-white/20 transition-all duration-500" />
+                    <div className="absolute bottom-0 left-0 -ml-8 -mb-8 w-24 h-24 bg-indigo-400 rounded-full blur-3xl opacity-50" />
+                    <Crown className="absolute top-4 right-4 w-12 h-12 text-white/10 rotate-12 group-hover:rotate-0 transition-all duration-500" />
+                </motion.div>
             )}
+
         </aside>
     );
 }

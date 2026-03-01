@@ -1,15 +1,71 @@
 'use client';
 
+import { useState, useMemo, useEffect } from 'react';
 import {
     Download,
     Trash2,
-    ArrowRight,
-    CheckCircle2,
     Zap,
-    Loader2
+    CheckCircle2,
+    Loader2,
+    Sparkles,
+    ArrowRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatSize } from '@/utils/helpers';
+
+const AnimatedCounter = ({ value, duration = 800 }) => {
+    const [count, setCount] = useState(0);
+
+    useEffect(() => {
+        let start = 0;
+        const end = parseFloat(value);
+        if (start === end) return;
+
+        let totalMilisecondsChild = duration;
+        let incrementTime = (totalMilisecondsChild / end) * 5;
+
+        let timer = setInterval(() => {
+            start += 1;
+            setCount(start);
+            if (start >= end) {
+                setCount(end);
+                clearInterval(timer);
+            }
+        }, 10);
+
+        return () => clearInterval(timer);
+    }, [value, duration]);
+
+    return <span>{count.toFixed(0)}</span>;
+};
+
+const AnimatedSizeCounter = ({ value, duration = 800 }) => {
+    const [count, setCount] = useState(0);
+    // Rough animation for MB/KB
+    useEffect(() => {
+        let start = 0;
+        const end = value;
+        const startTime = Date.now();
+
+        const update = () => {
+            const now = Date.now();
+            const elapsed = now - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+
+            // Ease out cubic
+            const ease = 1 - Math.pow(1 - progress, 3);
+            setCount(start + (end - start) * ease);
+
+            if (progress < 1) {
+                requestAnimationFrame(update);
+            }
+        };
+
+        requestAnimationFrame(update);
+    }, [value, duration]);
+
+    return <span>{formatSize(count)}</span>;
+};
 
 export default function SummaryBar({
     files,
@@ -18,13 +74,30 @@ export default function SummaryBar({
     onRemove,
     isProcessing
 }) {
-    const selectedFiles = files.filter((_, i) => selectedIndices.has(i));
-    const hasCompressed = selectedFiles.some(f => f.compressed);
+    const selectedFiles = useMemo(() =>
+        files.filter((_, i) => selectedIndices.has(i)),
+        [files, selectedIndices]);
 
-    const totalOriginal = selectedFiles.reduce((acc, f) => acc + f.original.size, 0);
-    const totalCompressed = selectedFiles.reduce((acc, f) => acc + (f.compressed?.size || f.original.size), 0);
-    const totalSaved = totalOriginal - totalCompressed;
-    const avgSavings = totalOriginal > 0 ? Math.round((totalSaved / totalOriginal) * 100) : 0;
+    const stats = useMemo(() => {
+        let totalOriginal = 0;
+        let totalCompressed = 0;
+        let readyCount = 0;
+
+        selectedFiles.forEach(f => {
+            totalOriginal += f.original.size;
+            if (f.compressed) {
+                totalCompressed += f.compressed.size;
+                readyCount++;
+            } else {
+                totalCompressed += f.original.size;
+            }
+        });
+
+        const savedBytes = totalOriginal - totalCompressed;
+        const savingsPercent = totalOriginal > 0 ? Math.round((savedBytes / totalOriginal) * 100) : 0;
+
+        return { savedBytes, savingsPercent, readyCount };
+    }, [selectedFiles]);
 
     if (files.length === 0) return null;
 
@@ -34,70 +107,82 @@ export default function SummaryBar({
             animate={{ y: 0 }}
             className="fixed bottom-0 left-0 right-0 z-[100] p-6 pointer-events-none"
         >
-            <div className="max-w-7xl mx-auto w-full h-24 glass-card shadow-2xl shadow-indigo-500/10 pointer-events-auto overflow-hidden flex items-center justify-between px-8 border-t-2 border-white/50 dark:border-white/5">
+            <div className="max-w-5xl mx-auto glass-card !p-5 !rounded-[2.5rem] pointer-events-auto flex items-center justify-between shadow-2xl shadow-indigo-500/10 border-2 border-[var(--accent)]/10 bg-[var(--card-bg)]/95 backdrop-blur-2xl">
 
-                {/* Left: Stats with Counter Animation */}
-                <div className="flex gap-8 items-center">
-                    <div className="space-y-0.5">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Total Original</p>
-                        <p className="text-xl font-black text-[var(--text-primary)] tracking-tight">{formatSize(totalOriginal)}</p>
-                    </div>
-
-                    <div className="w-px h-10 bg-[var(--border-color)]" />
-
-                    <div className="space-y-0.5">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-green-500">Savings Impact</p>
-                        <div className="flex items-end gap-2">
-                            <p className="text-2xl font-black text-green-600 tracking-tighter">-{formatSize(totalSaved)}</p>
-                            <span className="text-xs font-bold text-green-500 bg-green-500/10 px-2 py-0.5 rounded-full mb-1">
-                                {avgSavings}%
-                            </span>
+                {/* Impact Summary */}
+                <div className="flex items-center gap-6 px-4">
+                    <div className="relative">
+                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-500 ${stats.savingsPercent > 0 ? 'bg-green-500 text-white shadow-xl shadow-green-500/30 rotate-3' : 'bg-slate-100 text-slate-400 dark:bg-slate-800'}`}>
+                            {stats.savingsPercent > 50 ? <Sparkles className="w-7 h-7" /> : <Zap className="w-7 h-7" />}
                         </div>
+                        {stats.readyCount > 0 && (
+                            <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                className="absolute -top-1 -right-1 w-4 h-4 bg-[var(--accent)] rounded-full border-2 border-white pulse-indicator"
+                            />
+                        )}
+                    </div>
+
+                    <div className="space-y-1">
+                        <div className="flex items-center gap-3">
+                            <h4 className="text-2xl font-black tracking-tighter text-[var(--text-primary)]">
+                                You saved <span className="text-green-500"><AnimatedSizeCounter value={stats.savedBytes} /></span>
+                            </h4>
+                            <AnimatePresence>
+                                {stats.savingsPercent > 0 && (
+                                    <motion.div
+                                        initial={{ opacity: 0, x: -10 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        className="bg-green-500 text-white text-[11px] font-black px-2.5 py-1 rounded-full shadow-lg shadow-green-500/20 uppercase tracking-widest"
+                                    >
+                                        <AnimatedCounter value={stats.savingsPercent} />% Saving
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
+                        <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-[0.2em] flex items-center gap-2">
+                            Batch Intelligence Active <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" /> {stats.readyCount} items ready to export
+                        </p>
                     </div>
                 </div>
 
-                {/* Center: Selected Badge */}
-                <div className="hidden lg:flex items-center gap-3 bg-[var(--bg-secondary)] px-6 py-3 rounded-2xl border border-[var(--border-color)] shadow-inner">
-                    <div className={`w-3 h-3 rounded-full ${isProcessing ? 'bg-amber-500 animate-pulse' : 'bg-[var(--accent)] shadow-lg shadow-indigo-500/40'}`} />
-                    <p className="text-xs font-black uppercase tracking-widest text-[var(--text-primary)]">
-                        {selectedIndices.size} Items Ready
-                    </p>
-                </div>
-
-                {/* Right: Actions */}
+                {/* Batch Actions */}
                 <div className="flex items-center gap-3">
                     <button
                         onClick={onRemove}
-                        className="p-4 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-2xl transition-all hover:scale-105 active:scale-95"
+                        disabled={selectedFiles.length === 0 || isProcessing}
+                        className="p-4 text-red-500 hover:bg-red-50 rounded-2xl transition-all border-2 border-transparent hover:border-red-100 disabled:opacity-30 group"
                         title="Remove Selected"
                     >
-                        <Trash2 className="w-5 h-5" />
+                        <Trash2 className="w-5 h-5 group-hover:scale-110 transition-transform" />
                     </button>
 
                     <button
                         onClick={onDownload}
-                        disabled={!hasCompressed || isProcessing}
-                        className={`
-              relative btn-primary !py-4 !px-8 h-14 group overflow-hidden
-              ${(!hasCompressed || isProcessing) ? 'opacity-50 grayscale cursor-not-allowed' : 'shadow-xl shadow-indigo-600/20'}
-            `}
+                        disabled={selectedFiles.length === 0 || isProcessing || stats.readyCount === 0}
+                        className="btn-primary !h-16 !px-10 !rounded-2xl !text-base min-w-[240px] shadow-indigo-600/30 group relative overflow-hidden"
                     >
-                        <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-                        <div className="flex items-center gap-2 relative z-10">
-                            {isProcessing ? (
-                                <>
-                                    <Loader2 className="w-5 h-5 animate-spin" />
-                                    <span className="font-black uppercase tracking-widest text-sm">Processing...</span>
-                                </>
-                            ) : (
-                                <>
-                                    <Download className="w-5 h-5 group-hover:-translate-y-0.5 transition-transform" />
-                                    <span className="font-black uppercase tracking-widest text-sm">Download ZIP</span>
-                                </>
-                            )}
-                        </div>
+                        {isProcessing ? (
+                            <>
+                                <Loader2 className="w-5 h-5 animate-spin" />
+                                <span className="uppercase font-black tracking-widest">Optimizing...</span>
+                            </>
+                        ) : (
+                            <>
+                                <Download className="w-5 h-5 group-hover:-translate-y-1 transition-transform" />
+                                <span className="uppercase font-black tracking-widest">Download Batch</span>
+                                <div className="ml-3 px-2 py-0.5 bg-white/20 rounded-md text-[10px] font-black">
+                                    {stats.readyCount}
+                                </div>
+                            </>
+                        )}
+
+                        {/* Shimmer Effect */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_2s_infinite]" />
                     </button>
                 </div>
+
             </div>
         </motion.div>
     );
