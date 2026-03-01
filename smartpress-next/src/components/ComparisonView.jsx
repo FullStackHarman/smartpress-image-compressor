@@ -27,7 +27,8 @@ const ComparisonView = memo(function ComparisonView({
     const handleMove = (e) => {
         if (!isDragging || !containerRef.current) return;
         const rect = containerRef.current.getBoundingClientRect();
-        const x = (e.pageX || e.touches?.[0].pageX) - rect.left - window.scrollX;
+        const clientX = e.pageX || e.touches?.[0].pageX;
+        const x = clientX - rect.left - window.scrollX;
         const position = Math.max(0, Math.min(100, (x / rect.width) * 100));
         setSliderPosition(position);
     };
@@ -57,10 +58,12 @@ const ComparisonView = memo(function ComparisonView({
         const handleUp = () => setIsDragging(false);
         const handleMoveWindow = (e) => handleMove(e);
 
-        window.addEventListener('mouseup', handleUp);
-        window.addEventListener('touchend', handleUp);
-        window.addEventListener('mousemove', handleMoveWindow);
-        window.addEventListener('touchmove', handleMoveWindow);
+        if (isDragging) {
+            window.addEventListener('mouseup', handleUp);
+            window.addEventListener('touchend', handleUp);
+            window.addEventListener('mousemove', handleMoveWindow);
+            window.addEventListener('touchmove', handleMoveWindow);
+        }
 
         return () => {
             window.removeEventListener('mouseup', handleUp);
@@ -76,21 +79,21 @@ const ComparisonView = memo(function ComparisonView({
         <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between px-2">
                 <div className="flex items-center gap-4">
-                    <h3 className="font-bold text-slate-800 dark:text-white truncate max-w-[200px]">
+                    <h3 className="font-bold text-[var(--text-primary)] truncate max-w-[200px]">
                         {file.original.name}
                     </h3>
-                    <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                    <div className="flex items-center gap-2 bg-[var(--bg-secondary)] px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] border border-[var(--border-color)]">
                         Original: {formatSize(file.original.size)}
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
-                    <button onClick={() => handleZoom(0.5)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 transition-colors" title="Zoom In">
+                    <button onClick={() => handleZoom(0.5)} className="p-2 hover:bg-[var(--bg-secondary)] rounded-lg text-[var(--text-secondary)] transition-colors" title="Zoom In">
                         <ZoomIn className="w-4 h-4" />
                     </button>
-                    <button onClick={() => handleZoom(-0.5)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 transition-colors" title="Zoom Out">
+                    <button onClick={() => handleZoom(-0.5)} className="p-2 hover:bg-[var(--bg-secondary)] rounded-lg text-[var(--text-secondary)] transition-colors" title="Zoom Out">
                         <ZoomOut className="w-4 h-4" />
                     </button>
-                    <button onClick={toggleFullscreen} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 transition-colors">
+                    <button onClick={toggleFullscreen} className="p-2 hover:bg-[var(--bg-secondary)] rounded-lg text-[var(--text-secondary)] transition-colors">
                         {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
                     </button>
                     <button onClick={onReset} className="btn-secondary !py-2 !px-4 text-xs flex items-center gap-2">
@@ -99,10 +102,10 @@ const ComparisonView = memo(function ComparisonView({
                 </div>
             </div>
 
-            {/* Main Preview Container with Aspect Ratio Lock */}
+            {/* Main Preview Container with Aspect Ratio Lock and Elevation */}
             <div
                 ref={containerRef}
-                className="relative w-full aspect-video rounded-[2.5rem] overflow-hidden bg-slate-100 dark:bg-slate-900 border-4 border-white dark:border-slate-800 shadow-2xl group select-none cursor-crosshair transition-all duration-300"
+                className="relative w-full aspect-video rounded-[2.5rem] overflow-hidden bg-[var(--bg-secondary)] border-4 border-[var(--card-bg)] shadow-xl group select-none cursor-crosshair transition-all duration-300"
             >
                 {/* Compressed Layer (Fades in over original) */}
                 <div className="absolute inset-0 w-full h-full overflow-hidden">
@@ -129,14 +132,14 @@ const ComparisonView = memo(function ComparisonView({
                             />
                         ) : null}
                     </AnimatePresence>
-                    <div className="absolute bottom-6 right-6 bg-indigo-600/90 backdrop-blur-md text-white px-4 py-2 rounded-2xl text-[10px] font-bold uppercase tracking-widest shadow-xl border border-white/10 z-20">
-                        Compressed {file.compressed && `(${formatSize(file.compressed.size)})`}
+                    <div className="absolute bottom-6 right-6 bg-[var(--accent)] text-white px-4 py-2 rounded-2xl text-[10px] font-bold uppercase tracking-widest shadow-xl border border-white/10 z-20">
+                        After {file.compressed && `(${formatSize(file.compressed.size)})`}
                     </div>
                 </div>
 
                 {/* Original Layer (Foreground Clipped) */}
                 <div
-                    className="absolute inset-0 z-10 overflow-hidden border-r-2 border-white/50 shadow-[10px_0_30px_rgba(0,0,0,0.2)]"
+                    className="absolute inset-0 z-10 overflow-hidden border-r-4 border-white shadow-[10px_0_30px_rgba(0,0,0,0.2)]"
                     style={{ width: `${sliderPosition}%` }}
                 >
                     {originalUrl && (
@@ -152,11 +155,11 @@ const ComparisonView = memo(function ComparisonView({
                         />
                     )}
                     <div className="absolute bottom-6 left-6 bg-slate-900/80 backdrop-blur-md text-white px-4 py-2 rounded-2xl text-[10px] font-bold uppercase tracking-widest shadow-xl border border-white/10">
-                        Original
+                        Before
                     </div>
                 </div>
 
-                {/* Slider Handle */}
+                {/* Slider Handle (Enhanced with circular knob) */}
                 <div
                     onMouseDown={() => setIsDragging(true)}
                     onTouchStart={() => setIsDragging(true)}
@@ -174,12 +177,12 @@ const ComparisonView = memo(function ComparisonView({
                             className="absolute inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm"
                             onClick={onOpenPro}
                         >
-                            <div className="bg-white dark:bg-slate-800 p-8 rounded-3xl text-center shadow-2xl border border-white/20 max-w-sm mx-4">
+                            <div className="bg-[var(--card-bg)] p-8 rounded-3xl text-center shadow-2xl border border-[var(--border-color)] max-w-sm mx-4">
                                 <div className="w-16 h-16 bg-amber-100 dark:bg-amber-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
                                     <LockIcon className="w-8 h-8 text-amber-600" />
                                 </div>
-                                <h4 className="text-xl font-bold mb-2 text-slate-800 dark:text-white">Pro Feature Unlocked</h4>
-                                <p className="text-slate-500 dark:text-slate-400 text-sm mb-6">
+                                <h4 className="text-xl font-bold mb-2 text-[var(--text-primary)]">Pro Feature Unlocked</h4>
+                                <p className="text-[var(--text-secondary)] text-sm mb-6">
                                     Zooming in to compare intricate details is a Pro feature. Upgrade to see the difference clearly.
                                 </p>
                                 <button className="btn-primary w-full shadow-lg shadow-indigo-600/20">Learn More & Upgrade</button>
@@ -200,7 +203,7 @@ const ComparisonView = memo(function ComparisonView({
                             <div className="relative w-16 h-16 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-2xl border border-white/20">
                                 <Loader2 className="w-8 h-8 text-white animate-spin" />
                             </div>
-                            <p className="font-bold text-slate-800 dark:text-white drop-shadow-lg text-sm bg-white/80 dark:bg-slate-900/80 px-4 py-2 rounded-xl backdrop-blur-md">
+                            <p className="font-bold text-white drop-shadow-lg text-sm bg-black/40 px-4 py-2 rounded-xl backdrop-blur-md">
                                 Optimizing Precision Details...
                             </p>
                         </motion.div>

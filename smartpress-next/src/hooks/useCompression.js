@@ -20,6 +20,7 @@ export function useCompression() {
     const [selectedIndices, setSelectedIndices] = useState(new Set());
     const [options, setOptions] = useState(DEFAULT_OPTIONS);
     const [isProcessing, setIsProcessing] = useState(false);
+    const [batchProgress, setBatchProgress] = useState({ current: 0, total: 0 });
 
     const timeoutRef = useRef(null);
     const filesRef = useRef(files);
@@ -39,13 +40,10 @@ export function useCompression() {
     }, []);
 
     const compressFile = useCallback(async (index, currentOptions) => {
-        // Use ref to get latest files without depending on the files state directly
         const fileData = filesRef.current[index];
         if (!fileData || !fileData.original) return;
 
-        // Skip if already processing or same options (optional optimization)
         updateFile(index, { status: 'processing' });
-        setIsProcessing(true);
 
         try {
             const imageCompression = (await import('browser-image-compression')).default;
@@ -66,13 +64,30 @@ export function useCompression() {
                 status: 'success',
                 savings
             });
+            return true;
         } catch (error) {
             console.error('Compression error:', error);
             updateFile(index, { status: 'error' });
-        } finally {
-            setIsProcessing(false);
+            return false;
         }
-    }, [updateFile]); // Stable callback
+    }, [updateFile]);
+
+    const compressAll = useCallback(async () => {
+        const selected = Array.from(selectedIndices);
+        if (selected.length === 0) return;
+
+        setIsProcessing(true);
+        setBatchProgress({ current: 0, total: selected.length });
+
+        for (let i = 0; i < selected.length; i++) {
+            const index = selected[i];
+            setBatchProgress(prev => ({ ...prev, current: i + 1 }));
+            await compressFile(index, options);
+        }
+
+        setIsProcessing(false);
+        setBatchProgress({ current: 0, total: 0 });
+    }, [selectedIndices, options, compressFile]);
 
     const handleUpload = useCallback(async (newFiles) => {
         const normalized = [];
@@ -110,28 +125,33 @@ export function useCompression() {
 
     // Debounced auto-compression
     useEffect(() => {
-        if (selectedIndex === null || filesRef.current.length === 0) return;
+        if (selectedIndex === null || filesRef.current.length === 0 || isProcessing) return;
 
         const currentFile = filesRef.current[selectedIndex];
         if (!currentFile) return;
-
-        // Don't re-trigger if already success and options haven't changed 
-        // (Though useEffect handles options change, being explicit helps)
 
         if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
         timeoutRef.current = setTimeout(() => {
             compressFile(selectedIndex, options);
-        }, 600); // Increased debounce slightly for stability
+        }, 500);
 
         return () => clearTimeout(timeoutRef.current);
-    }, [options, selectedIndex, compressFile]);
+    }, [options, selectedIndex, compressFile, isProcessing]);
 
     const removeSelected = useCallback(() => {
         setFiles(prev => prev.filter((_, i) => !selectedIndices.has(i)));
         setSelectedIndices(new Set());
         setSelectedIndex(null);
     }, [selectedIndices]);
+
+    const selectAll = useCallback(() => {
+        setSelectedIndices(new Set(files.keys()));
+    }, [files.length]);
+
+    const deselectAll = useCallback(() => {
+        setSelectedIndices(new Set());
+    }, []);
 
     return {
         files,
@@ -142,8 +162,12 @@ export function useCompression() {
         options,
         setOptions,
         isProcessing,
+        batchProgress,
         handleUpload,
         removeSelected,
-        compressFile
+        compressFile,
+        compressAll,
+        selectAll,
+        deselectAll
     };
 }
