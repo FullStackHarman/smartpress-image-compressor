@@ -153,6 +153,12 @@ export function useCompression() {
         setSelectedIndices(new Set());
     }, []);
 
+    const clearAll = useCallback(() => {
+        setFiles([]);
+        setSelectedIndex(null);
+        setSelectedIndices(new Set());
+    }, []);
+
     return {
         files,
         selectedIndex,
@@ -168,6 +174,7 @@ export function useCompression() {
         compressFile,
         compressAll,
         selectAll,
-        deselectAll
+        deselectAll,
+        clearAll
     };
 }

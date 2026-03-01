@@ -21,7 +21,8 @@ export default function BatchList({
     selectedIndices,
     setSelectedIndices,
     onSelectAll,
-    onDeselectAll
+    onDeselectAll,
+    onClearAll
 }) {
     const toggleSelect = (e, index) => {
         e.stopPropagation();
@@ -61,6 +62,15 @@ export default function BatchList({
                         className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] hover:text-red-500 transition-colors px-2 py-1"
                     >
                         Deselect
+                    </button>
+                    <div className="w-px h-3 bg-[var(--border-color)]" />
+                    <button
+                        onClick={onClearAll}
+                        className="text-[10px] font-bold uppercase tracking-widest text-red-600 hover:text-red-700 transition-colors px-2 py-1 flex items-center gap-1"
+                        title="Clear all images"
+                    >
+                        <Trash2 className="w-3 h-3" />
+                        Start Fresh
                     </button>
                 </div>
             </div>
