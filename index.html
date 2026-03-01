@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartPress | Privacy-First Image Compressor & WebP Converter</title>
+    <meta name="description"
+        content="Free, 100% client-side image compressor. Convert to WebP, resize, and optimize images without uploading them to any server. Privacy-first, fast, and easy.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- Libraries -->
+    <script
+        src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    <script src="https://www.paypal.com/sdk/js?client-id=sb&currency=USD"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: '#6366f1',
+                        secondary: '#4f46e5',
+                        dark: '#0f172a',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+
+<body class="bg-gray-50 dark:bg-dark text-slate-900 dark:text-slate-100 transition-colors duration-300">
+
+    <!-- Navbar -->
+    <nav
+        class="fixed w-full z-50 backdrop-blur-md bg-white/70 dark:bg-dark/70 border-b border-gray-200 dark:border-gray-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center gap-2">
+                    <div
+                        class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white font-bold text-xl">
+                        S</div>
+                    <span class="text-xl font-bold tracking-tight">SmartPress</span>
+                </div>
+                <div class="flex items-center gap-4">
+                    <span
+                        class="hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800">
+                        <span class="w-2 h-2 mr-1.5 bg-green-500 rounded-full"></span>
+                        100% Client-Side
+                    </span>
+                    <button id="themeToggle"
+                        class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                        <svg id="sunIcon" class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 3v1m0 16v1m9-9h-1M4 9h-1m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.343l-.707-.707M12 5a7 7 0 100 14 7 7 0 000-14z">
+                            </path>
+                        </svg>
+                        <svg id="moonIcon" class="w-5 h-5 block dark:hidden" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z">
+                            </path>
+                        </svg>
+                    </button>
+                    <button id="openProModal"
+                        class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded-full text-sm font-semibold transition-all shadow-lg hover:shadow-primary/20">Unlock
+                        Pro</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="pt-24 pb-12 px-4">
+        <div class="max-w-6xl mx-auto space-y-12">
+
+            <!-- Hero / Upload Section -->
+            <section id="uploadSection" class="text-center space-y-8 py-12">
+                <div class="space-y-4">
+                    <h1
+                        class="text-4xl md:text-6xl font-bold tracking-tight bg-gradient-to-r from-primary to-indigo-400 bg-clip-text text-transparent">
+                        Compress Images, Not Privacy.</h1>
+                    <p class="text-lg text-slate-500 dark:text-slate-400 max-w-2xl mx-auto">Upload images and compress
+                        them without losing quality. All processing happens in your browser—no data ever leaves your
+                        device.</p>
+                </div>
+
+                <!-- Dropzone -->
+                <div id="dropzone" class="relative group cursor-pointer">
+                    <input type="file" id="fileInput" class="hidden" multiple accept="image/*,.heic,.heif">
+                    <div
+                        class="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-3xl p-12 lg:p-20 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm transition-all group-hover:border-primary group-hover:bg-primary/5">
+                        <div class="space-y-4">
+                            <div
+                                class="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto transition-transform group-hover:scale-110">
+                                <svg class="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+                                </svg>
+                            </div>
+                            <div class="space-y-2">
+                                <p class="text-xl font-semibold">Drop images here or click to browse</p>
+                                <p class="text-sm text-slate-500">Supports JPEG, PNG, WebP, GIF & HEIC (Upto 50MB per
+                                    file)</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap justify-center gap-4 text-sm text-slate-500">
+                    <div class="flex items-center gap-1.5"><svg class="w-4 h-4 text-green-500" fill="currentColor"
+                            viewBox="0 0 20 20">
+                            <path fill-rule="evenodd"
+                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                clip-rule="evenodd"></path>
+                        </svg>100% Client-Side</div>
+                    <div class="flex items-center gap-1.5"><svg class="w-4 h-4 text-green-500" fill="currentColor"
+                            viewBox="0 0 20 20">
+                            <path fill-rule="evenodd"
+                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                clip-rule="evenodd"></path>
+                        </svg>No Account Needed</div>
+                    <div class="flex items-center gap-1.5"><svg class="w-4 h-4 text-green-500" fill="currentColor"
+                            viewBox="0 0 20 20">
+                            <path fill-rule="evenodd"
+                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                clip-rule="evenodd"></path>
+                        </svg>Privacy Guaranteed</div>
+                </div>
+            </section>
+
+            <!-- Editor Section (Hidden by default) -->
+            <section id="editorSection" class="hidden grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+
+                <!-- Comparison Views -->
+                <div class="lg:col-span-2 space-y-6">
+                    <div class="glass-card p-4 space-y-4">
+                        <div class="flex justify-between items-center px-2">
+                            <h3 id="currentFileName" class="font-semibold truncate max-w-[200px]">image.jpg</h3>
+                            <div class="flex items-center gap-2">
+                                <button id="fullscreenToggle"
+                                    class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors text-slate-500"
+                                    title="Fullscreen">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4">
+                                        </path>
+                                    </svg>
+                                </button>
+                                <button id="resetBtn" class="text-xs text-red-500 hover:text-red-600 font-bold">Remove
+                                    All</button>
+                            </div>
+                        </div>
+
+                        <!-- Interactive Comparison Container -->
+                        <div class="relative w-full aspect-square md:aspect-video rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 select-none group/comparison"
+                            id="comparisonContainer">
+                            <!-- Compressed (Layer Behind) -->
+                            <div id="compressedWrapper"
+                                class="absolute inset-0 w-full h-full overflow-hidden transition-transform duration-200"
+                                style="transform-origin: center;">
+                                <img id="compressedImg" src="" class="w-full h-full object-contain" alt="Compressed">
+                            </div>
+
+                            <!-- Original (Layer Front, Clipped) -->
+                            <div id="originalWrapper"
+                                class="absolute inset-0 w-1/2 overflow-hidden border-r-2 border-white shadow-[2px_0_10px_rgba(0,0,0,0.3)] z-10 transition-none">
+                                <div id="originalZoomWrapper"
+                                    class="absolute inset-0 w-full h-full transition-transform duration-200"
+                                    style="transform-origin: center;">
+                                    <img id="originalImg" src=""
+                                        class="absolute inset-0 w-full h-full object-contain pointer-events-none"
+                                        style="width: 100% !important; height: 100% !important; max-width: none !important;"
+                                        alt="Original">
+                                </div>
+                            </div>
+
+                            <!-- Slider Handle -->
+                            <div id="sliderHandle"
+                                class="absolute top-0 bottom-0 left-1/2 w-10 -ml-5 z-20 cursor-ew-resize flex items-center justify-center pointer-events-none transition-none">
+                                <div
+                                    class="w-10 h-10 bg-white rounded-full shadow-2xl flex items-center justify-center border-4 border-primary pointer-events-auto active:scale-110 transition-transform">
+                                    <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M8 7l-4 4m0 0l4 4m-4-4h16m0 0l-4-4m4 4l-4 4"></path>
+                                    </svg>
+                                </div>
+                            </div>
+
+                            <!-- Labels & Hints -->
+                            <div
+                                class="absolute top-4 left-4 z-30 px-3 py-1 bg-black/50 backdrop-blur-md text-white text-[10px] font-bold uppercase tracking-wider rounded-lg pointer-events-none">
+                                Original</div>
+                            <div
+                                class="absolute top-4 right-4 z-30 px-3 py-1 bg-primary/80 backdrop-blur-md text-white text-[10px] font-bold uppercase tracking-wider rounded-lg pointer-events-none">
+                                Compressed</div>
+
+                            <div id="sliderHint"
+                                class="absolute inset-0 flex items-center justify-center pointer-events-none z-30 opacity-0 group-hover/comparison:opacity-100 transition-opacity">
+                                <div
+                                    class="bg-black/60 backdrop-blur-md text-white px-4 py-2 rounded-full text-xs font-bold animate-pulse inline-flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path>
+                                    </svg>
+                                    Drag to compare
+                                </div>
+                            </div>
+
+                            <!-- Zoom Control Overlay -->
+                            <div id="zoomProLock"
+                                class="absolute inset-0 z-40 bg-black/20 backdrop-blur-[2px] flex items-center justify-center hidden">
+                                <div
+                                    class="bg-white/95 dark:bg-slate-900/95 p-6 rounded-3xl shadow-2xl text-center space-y-3 max-w-[200px]">
+                                    <div
+                                        class="w-10 h-10 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center mx-auto">
+                                        🔒</div>
+                                    <p class="text-xs font-bold">Pro Feature</p>
+                                    <p class="text-[10px] text-slate-500">Upgrade to unlock pixel-perfect zoom
+                                        comparison</p>
+                                    <button onclick="document.getElementById('openProModal').click()"
+                                        class="text-[10px] text-primary font-bold underline">Unlock Now</button>
+                                </div>
+                            </div>
+
+                            <!-- Processing Overlay -->
+                            <div id="processingOverlay"
+                                class="absolute inset-0 z-50 bg-white/80 dark:bg-dark/80 flex items-center justify-center hidden">
+                                <div
+                                    class="animate-spin rounded-full h-10 w-10 border-4 border-primary border-t-transparent">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Info Bar -->
+                        <div class="flex flex-wrap justify-between items-center px-2 gap-4">
+                            <div class="flex gap-6 text-xs">
+                                <div class="flex flex-col">
+                                    <span class="text-[10px] uppercase font-bold text-slate-400">Original</span>
+                                    <span id="originalSize" class="font-bold">0 KB</span>
+                                </div>
+                                <div class="flex flex-col">
+                                    <span class="text-[10px] uppercase font-bold text-primary">Compressed</span>
+                                    <span id="compressedSize" class="font-bold text-primary">0 KB</span>
+                                </div>
+                            </div>
+                            <div id="savingsBadge"
+                                class="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold opacity-0 transition-opacity shadow-lg shadow-green-500/20">
+                                -0%</div>
+                        </div>
+                    </div>
+
+                    <!-- Batch List -->
+                    <div id="batchContainer" class="hidden glass-card p-6 space-y-4">
+                        <div class="flex flex-wrap justify-between items-end gap-4">
+                            <div class="space-y-1">
+                                <h3 class="font-bold flex items-center gap-2">
+                                    Batch Process <span id="batchCountBadge"
+                                        class="bg-primary text-white text-[10px] px-2 py-0.5 rounded-full font-bold shadow-lg shadow-primary/30">(0
+                                        Selected)</span>
+                                </h3>
+                                <div class="flex items-center gap-4">
+                                    <label
+                                        class="flex items-center gap-2 text-xs cursor-pointer text-slate-500 hover:text-primary transition-colors">
+                                        <input type="checkbox" id="selectAll"
+                                            class="rounded border-gray-300 text-primary focus:ring-primary">
+                                        Select All
+                                    </label>
+                                    <button id="removeSelectedBtn"
+                                        class="text-xs text-red-500 hover:text-red-600 disabled:opacity-50">Remove
+                                        Selected</button>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span id="batchProLimit"
+                                    class="text-[10px] text-orange-500 font-bold uppercase hidden">🔒 Upgrade for 5+
+                                    files</span>
+                            </div>
+                        </div>
+                        <div id="batchList" class="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                            <!-- Items dynamically added -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Controls -->
+                <aside class="glass-card p-6 space-y-8 sticky top-24">
+                    <!-- Platform Presets -->
+                    <div class="space-y-4">
+                        <label
+                            class="block text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                            Optimize for Platform
+                            <span
+                                class="text-[10px] bg-indigo-100 dark:bg-indigo-900/30 text-indigo-500 px-2 py-0.5 rounded-full uppercase font-bold">Pro</span>
+                        </label>
+                        <div class="grid grid-cols-3 gap-2 overflow-hidden relative group/presets">
+                            <button data-preset="instagram" class="preset-btn">Insta</button>
+                            <button data-preset="shopify"
+                                class="preset-btn text-green-600 border-green-200">Shopify</button>
+                            <button data-preset="whatsapp"
+                                class="preset-btn text-emerald-600 border-emerald-200">WA</button>
+
+                            <!-- Pro Overlay for Presets -->
+                            <div id="presetsProLock"
+                                class="absolute inset-0 bg-white/40 dark:bg-slate-900/40 backdrop-blur-[1px] z-10 flex items-center justify-center opacity-0 group-hover/presets:opacity-100 transition-opacity cursor-pointer">
+                                <span class="text-xs font-bold text-slate-900 dark:text-white drop-shadow-md">🔒
+                                    Pro</span>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 relative group/presets2">
+                            <button data-preset="wordpress"
+                                class="preset-btn text-blue-600 border-blue-200">WordPress</button>
+                            <button data-preset="email"
+                                class="preset-btn text-orange-600 border-orange-200">Email</button>
+                            <div id="presetsProLock2"
+                                class="absolute inset-0 bg-white/40 dark:bg-slate-900/40 backdrop-blur-[1px] z-10 flex items-center justify-center opacity-0 group-hover/presets2:opacity-100 transition-opacity cursor-pointer">
+                                <span class="text-xs font-bold">🔒 Pro</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="space-y-4" id="qualityControl">
+                        <div class="flex justify-between items-center">
+                            <label class="block text-sm font-bold text-slate-700 dark:text-slate-300">Compression
+                                Quality</label>
+                            <span id="qualityVal" class="text-sm font-bold text-primary">80%</span>
+                        </div>
+                        <input type="range" id="qualityRange" min="10" max="100" value="80"
+                            class="w-full accent-primary">
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center">
+                            <label class="block text-sm font-bold text-slate-700 dark:text-slate-300">Target Max Size
+                                (MB)</label>
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] text-slate-400">Force Size:</span>
+                                <label class="relative inline-flex items-center cursor-pointer scale-75">
+                                    <input type="checkbox" id="sizePriorityToggle" class="sr-only peer">
+                                    <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-orange-500"
+                                        title="Prioritize Target Size over Quality"></div>
+                                </label>
+                            </div>
+                        </div>
+                        <input type="number" id="maxSizeMB" step="0.1" min="0.1" max="50" placeholder="e.g. 0.5"
+                            class="w-full bg-slate-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-primary focus:border-primary">
+                        <p id="targetConflictText" class="text-[10px] text-orange-500 font-medium hidden">⚠️ Quality
+                            slider disabled while forcing target size.</p>
+                    </div>
+
+                    <div class="space-y-4">
+                        <label class="block text-sm font-bold text-slate-700 dark:text-slate-300">Target Format</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button data-format="original" class="format-btn active group relative overflow-visible">
+                                Keep Original
+                                <span
+                                    class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-slate-900 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">Retains
+                                    original image format</span>
+                            </button>
+                            <button data-format="webp" class="format-btn">WebP</button>
+                            <button data-format="jpeg" class="format-btn">JPG</button>
+                            <button data-format="png" class="format-btn">PNG</button>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center">
+                            <label class="text-sm font-bold">Resize Image</label>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="resizeToggle" class="sr-only peer">
+                                <div
+                                    class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-primary">
+                                </div>
+                            </label>
+                        </div>
+
+                        <div id="resizeInputs" class="space-y-4 opacity-50 pointer-events-none transition-all">
+                            <!-- % Resize Options -->
+                            <div class="grid grid-cols-3 gap-2">
+                                <button data-resize-pct="75" class="resize-pct-btn">75%</button>
+                                <button data-resize-pct="50" class="resize-pct-btn">50%</button>
+                                <button data-resize-pct="25" class="resize-pct-btn">25%</button>
+                            </div>
+
+                            <div class="flex items-center gap-2 py-1">
+                                <div class="h-px flex-1 bg-gray-100 dark:bg-gray-800"></div>
+                                <span class="text-[9px] uppercase font-bold text-slate-400">or manual</span>
+                                <div class="h-px flex-1 bg-gray-100 dark:bg-gray-800"></div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="space-y-1">
+                                    <span class="text-[10px] uppercase font-bold text-slate-400">Width (px)</span>
+                                    <input type="number" id="maxWidth" placeholder="px"
+                                        class="w-full bg-slate-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-primary">
+                                </div>
+                                <div class="space-y-1">
+                                    <span class="text-[10px] uppercase font-bold text-slate-400">Height (px)</span>
+                                    <input type="number" id="maxHeight" placeholder="px"
+                                        class="w-full bg-slate-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-primary">
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-2">
+                                <input type="checkbox" id="lockAspect" checked
+                                    class="rounded text-primary focus:ring-primary">
+                                <label for="lockAspect"
+                                    class="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1 cursor-pointer">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z">
+                                        </path>
+                                    </svg>
+                                    Lock Aspect Ratio
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pro Promo Card -->
+                    <div
+                        class="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 rounded-2xl p-4 text-center space-y-2">
+                        <div class="text-xs font-bold text-indigo-500 uppercase">Upgrade to Pro</div>
+                        <p class="text-[11px] text-slate-500">Unlimited batch, zoom comparison, & premium presets.</p>
+                        <button onclick="document.getElementById('openProModal').click()"
+                            class="text-xs font-bold underline text-indigo-600">Learn More &rarr;</button>
+                    </div>
+                </aside>
+            </section>
+
+            <!-- Features Section -->
+            <section class="grid grid-cols-1 md:grid-cols-3 gap-8 py-12">
+                <div class="space-y-3">
+                    <div
+                        class="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl flex items-center justify-center font-bold">
+                        1</div>
+                    <h3 class="font-bold">Privacy First</h3>
+                    <p class="text-sm text-slate-500">Processing happens locally. Your private images are never sent to
+                        a cloud server.</p>
+                </div>
+                <div class="space-y-3">
+                    <div
+                        class="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-xl flex items-center justify-center font-bold">
+                        2</div>
+                    <h3 class="font-bold">Lightning Fast</h3>
+                    <p class="text-sm text-slate-500">Parallel processing with Web Workers ensures smooth compression
+                        without lag.</p>
+                </div>
+                <div class="space-y-3">
+                    <div
+                        class="w-10 h-10 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-xl flex items-center justify-center font-bold">
+                        3</div>
+                    <h3 class="font-bold">Web3 Optimized</h3>
+                    <p class="text-sm text-slate-500">Easily convert bulky JPEG/PNG into lightweight WebP for better SEO
+                        and performance.</p>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <footer class="border-t border-gray-200 dark:border-gray-800 py-12">
+        <div class="max-w-6xl mx-auto px-4 text-center space-y-4 text-slate-500 text-sm">
+            <p>&copy; 2026 SmartPress. All processing is 100% client-side.</p>
+            <div class="flex justify-center gap-6">
+                <a href="#" class="hover:text-primary transition-colors">Terms</a>
+                <a href="#" class="hover:text-primary transition-colors">Privacy</a>
+                <a href="#" class="hover:text-primary transition-colors">Github</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Pro Modal -->
+    <div id="proModal"
+        class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm hidden">
+        <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-8 shadow-2xl relative">
+            <button id="closeProModal"
+                class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                    </path>
+                </svg>
+            </button>
+            <div class="text-center space-y-6">
+                <div class="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto">
+                    <svg class="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                </div>
+                <div class="space-y-2">
+                    <h2 class="text-2xl font-bold">Unlock SmartPress Pro</h2>
+                    <p class="text-slate-500 text-sm">One-time payment of $9. Get lifetime access to all premium
+                        features.</p>
+                </div>
+                <ul class="text-left space-y-3 text-sm">
+                    <li class="flex items-center gap-2"><svg class="w-4 h-4 text-green-500" fill="none"
+                            stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7">
+                            </path>
+                        </svg>Unlimited Batch Processing</li>
+                    <li class="flex items-center gap-2"><svg class="w-4 h-4 text-green-500" fill="none"
+                            stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7">
+                            </path>
+                        </svg>Advanced Presets & Target Sizes</li>
+                    <li class="flex items-center gap-2"><svg class="w-4 h-4 text-green-500" fill="none"
+                            stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7">
+                            </path>
+                        </svg>Side-by-side Zoom Comparison</li>
+                    <li class="flex items-center gap-2"><svg class="w-4 h-4 text-green-500" fill="none"
+                            stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7">
+                            </path>
+                        </svg>Remove all watermarks & Priority Support</li>
+                </ul>
+                <div id="paypal-button-container"></div>
+                <p class="text-[10px] text-slate-400">Secure payment processed via PayPal.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sticky Summary Bar -->
+    <div id="summaryBar"
+        class="fixed bottom-0 left-0 right-0 z-50 transform translate-y-full transition-transform duration-300">
+        <div class="max-w-4xl mx-auto px-4 pb-6">
+            <div
+                class="bg-slate-900/90 dark:bg-slate-800/90 backdrop-blur-xl border border-white/10 rounded-full py-4 px-8 shadow-2xl flex flex-wrap items-center justify-between gap-6 text-white">
+                <div class="flex items-center gap-6">
+                    <div class="hidden md:block">
+                        <span id="summarySelectedCount" class="text-primary font-bold">0</span>
+                        <span class="text-xs text-slate-400 uppercase tracking-widest ml-1">Selected</span>
+                    </div>
+                    <div class="h-8 w-px bg-white/10 hidden md:block"></div>
+                    <div>
+                        <div class="text-[10px] text-slate-400 uppercase">Original</div>
+                        <div id="summaryOriginalTotal" class="text-sm font-bold">0 MB</div>
+                    </div>
+                    <div>
+                        <div class="text-[10px] text-slate-400 uppercase">Compressed</div>
+                        <div id="summaryCompressedTotal" class="text-sm font-bold text-primary">0 MB</div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-6">
+                    <div class="text-right">
+                        <div class="text-[10px] text-slate-400 uppercase">Total Saved</div>
+                        <div class="text-sm font-bold text-green-400"><span id="summarySavedTotal">0 MB</span> (<span
+                                id="summarySavingsPercent">0%</span>)</div>
+                    </div>
+                    <button id="summaryDownloadBtn"
+                        class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded-full text-sm font-bold transition-all shadow-lg active:scale-95">Download</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
