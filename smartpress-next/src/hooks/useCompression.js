@@ -22,23 +22,32 @@ export function useCompression() {
     const [isProcessing, setIsProcessing] = useState(false);
 
     const timeoutRef = useRef(null);
+    const filesRef = useRef(files);
+
+    // Sync ref with state for stable callbacks
+    useEffect(() => {
+        filesRef.current = files;
+    }, [files]);
 
     const updateFile = useCallback((index, updates) => {
         setFiles(prev => {
             const next = [...prev];
+            if (!next[index]) return prev;
             next[index] = { ...next[index], ...updates };
             return next;
         });
     }, []);
 
     const compressFile = useCallback(async (index, currentOptions) => {
-        const fileData = files[index];
+        // Use ref to get latest files without depending on the files state directly
+        const fileData = filesRef.current[index];
         if (!fileData || !fileData.original) return;
 
+        // Skip if already processing or same options (optional optimization)
         updateFile(index, { status: 'processing' });
+        setIsProcessing(true);
 
         try {
-            // Dynamic import to avoid SSR issues
             const imageCompression = (await import('browser-image-compression')).default;
 
             const compressionOptions = {
@@ -60,18 +69,18 @@ export function useCompression() {
         } catch (error) {
             console.error('Compression error:', error);
             updateFile(index, { status: 'error' });
+        } finally {
+            setIsProcessing(false);
         }
-    }, [files, updateFile]);
+    }, [updateFile]); // Stable callback
 
     const handleUpload = useCallback(async (newFiles) => {
         const normalized = [];
-
-        // Dynamic import to avoid SSR issues
         const heic2any = (await import('heic2any')).default;
 
         for (const file of newFiles) {
             let original = file;
-            if (getFileExtension(file.name) === 'heic') {
+            if (getFileExtension(file.name).toLowerCase() === 'heic') {
                 try {
                     const blob = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.8 });
                     original = new File([blob], file.name.replace(/\.[^/.]+$/, '.jpg'), { type: 'image/jpeg' });
@@ -88,30 +97,35 @@ export function useCompression() {
             });
         }
 
-        const startIndex = files.length;
+        const startIndex = filesRef.current.length;
         setFiles(prev => [...prev, ...normalized]);
         setSelectedIndex(startIndex);
 
-        // Auto-select and trigger compression for new files
         setSelectedIndices(prev => {
             const next = new Set(prev);
             normalized.forEach((_, i) => next.add(startIndex + i));
             return next;
         });
-    }, [files.length]);
+    }, []);
 
-    // Debounced auto-compression on options change
+    // Debounced auto-compression
     useEffect(() => {
-        if (selectedIndex === null || files.length === 0) return;
+        if (selectedIndex === null || filesRef.current.length === 0) return;
+
+        const currentFile = filesRef.current[selectedIndex];
+        if (!currentFile) return;
+
+        // Don't re-trigger if already success and options haven't changed 
+        // (Though useEffect handles options change, being explicit helps)
 
         if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
         timeoutRef.current = setTimeout(() => {
             compressFile(selectedIndex, options);
-        }, 400);
+        }, 600); // Increased debounce slightly for stability
 
         return () => clearTimeout(timeoutRef.current);
-    }, [options, selectedIndex, compressFile, files.length]);
+    }, [options, selectedIndex, compressFile]);
 
     const removeSelected = useCallback(() => {
         setFiles(prev => prev.filter((_, i) => !selectedIndices.has(i)));
