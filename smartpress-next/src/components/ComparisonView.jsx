@@ -9,10 +9,12 @@ import {
     Move,
     MousePointer2,
     ArrowLeftRight,
-    Sparkles
+    Sparkles,
+    Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useObjectUrl } from '@/hooks/useObjectUrl';
+import { formatSize } from '@/utils/helpers';
 
 export default function ComparisonView({
     file,
